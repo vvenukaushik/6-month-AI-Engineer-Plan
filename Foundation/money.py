@@ -3,7 +3,7 @@ from functools import total_ordering
 
 
 
-@total_ordering
+#@total_ordering
 class Money:
 
 
@@ -54,3 +54,33 @@ class Money:
         return self.__mul__(factor)
     
     
+if __name__ == "__main__":
+    print("=" * 60)
+    print("MONEY CLASS — DUNDER METHODS DEMO")
+    print("=" * 60)
+    
+    # ── Creating instances (__init__) ──────────────────────
+    print("\n📦 Creating Money objects:")
+    wallet = Money(100.00, "USD")
+    coffee = Money(4.50, "USD")
+    lunch = Money(12.75, "USD")
+    print(f"   wallet = {wallet}")
+    print(f"   coffee = {coffee}")
+    print(f"   lunch  = {lunch}")
+    
+    # ── __str__ vs __repr__ ────────────────────────────────
+    print("\n📝 __str__ vs __repr__:")
+    print(f"   str(wallet)  = {str(wallet)}")       # Human-friendly
+    print(f"   repr(wallet) = {repr(wallet)}")       # Developer-friendly
+    
+    # ── Arithmetic (__add__, __sub__, __mul__) ─────────────
+    print("\n➕ Arithmetic:")
+    remaining = wallet - coffee - lunch
+    print(f"   {wallet} - {coffee} - {lunch} = {remaining}")
+    
+    total_coffees = coffee * 5
+    print(f"   {coffee} × 5 = {total_coffees}")
+    
+    # __rmul__ lets the number come first
+    also_coffees = 5 * coffee
+    print(f"   5 × {coffee} = {also_coffees}")
