@@ -93,7 +93,7 @@ URLS = [
     "https://httpbin.org/delay/1",
 ]
 
-async def fetch(session: aiohttp.ClientSession, url: str, label: str) -> dict:
+async def fetch_url(session: aiohttp.ClientSession, url: str, label: str) -> dict:
 
     start = time.perf_counter()
     try:
@@ -190,7 +190,7 @@ async def demo_error_handling():
 
     for i, result in enumerate(results):
         if isinstance(result, Exception):
-            print(f" Call {i+1}: {type(result).__name}: {result}")
+            print(f" Call {i+1}: {type(result).__name__}: {result}")
         else:
             print(f" call {i+1}: {result}")
 
@@ -233,5 +233,111 @@ async def demo_async_generator():
     In Month 2, you'll use this pattern with OpenAI and Anthropic's
     streaming APIs.
     """
+    print("\n📡 ASYNC GENERATORS — The LLM Streaming Pattern:")
 
+    async def stream_llm_response(prompt: str):
+        """
+        Simulates a streaming LLM response.
+        
+        In real code, this would be:
+            async for chunk in client.chat.completions.create(stream=True, ...):
+                yield chunk.choices[0].delta.content
+        """
+        response_words = f"Machine learning is a branch of AI that enables computers to learn from data without being explicitly programmed".split()
+
+        for word in response_words:
+            await asyncio.sleep(0.08)
+            yield word + " "
+
+    # ── Consume the stream ─────────────────────────────────
+    print(f"  Prompt: 'What is machine learning?'")
+    print(f"  Response: ", end="", flush=True)
     
+    full_response = ""
+    async for token in stream_llm_response("What is Machine Learning ?"):
+        full_response += token
+
+    print(f"\n  (Streamed {len(full_response.split())} words)")
+
+    print(f"\n  Simulating 3 parallel LLM calls with streaming:")
+    
+    async def stream_with_label(label: str, words: list[str]):
+        """Stream words with a label."""
+        result = ""
+        for word in words:
+            await asyncio.sleep(0.05)
+            result += word + " "
+        return f"[{label}] {result.strip()}"
+    
+    results = await asyncio.gather(
+        stream_with_label("Summary", ["AI", "is", "transforming", "industries"]),
+        stream_with_label("Tweet", ["ML", "is", "the", "future!"]),
+        stream_with_label("Title", ["Understanding", "Machine", "Learning"]),
+    )
+    for r in results:
+        print(f"    {r}")
+
+
+
+# ══════════════════════════════════════════════════════════════
+# MAIN — Run all demos
+# ══════════════════════════════════════════════════════════════
+ 
+async def main():
+    print("=" * 60)
+    print("DAY 4: ASYNC PYTHON FUNDAMENTALS")
+    print("=" * 60)
+    
+    # Part 1: Basic sequential vs concurrent
+    seq_time = await demo_sequential()
+    conc_time = await demo_concurrent()
+    speedup = seq_time / conc_time if conc_time > 0 else 0
+    print(f"\n  ⚡ Speedup: {speedup:.1f}x faster with concurrency!")
+    
+    # Part 2: Real HTTP calls (comment out if no internet)
+    print("\n" + "=" * 60)
+    print("REAL HTTP CALLS (using httpbin.org)")
+    print("=" * 60)
+    
+    try:
+        #seq_http = await demo_sequential_http()
+        conc_http = await demo_concurrent_http()
+        #speedup = seq_http / conc_http if conc_http > 0 else 0
+        print(f"\n  ⚡ HTTP Speedup: {speedup:.1f}x faster!")
+    except Exception as e:
+        print(f"\n  ⚠️  HTTP demo skipped (network error: {e})")
+        print("  This is fine — the concept is the same as Part 1")
+    
+    # Part 3: create_task
+    print("\n" + "=" * 60)
+    print("BACKGROUND TASKS")
+    print("=" * 60)
+    await demo_create_task()
+    
+    # Part 4: Error handling
+    print("\n" + "=" * 60)
+    print("ERROR HANDLING")
+    print("=" * 60)
+    await demo_error_handling()
+    
+    # Part 5: Async generators (streaming)
+    print("\n" + "=" * 60)
+    print("ASYNC GENERATORS (STREAMING)")
+    print("=" * 60)
+    await demo_async_generator()
+    
+    # Summary
+    print("\n" + "=" * 60)
+    print("🎓 KEY TAKEAWAYS")
+    print("=" * 60)
+    print("  1. 'async def' creates a coroutine — it can be paused with 'await'")
+    print("  2. 'await' pauses ONE coroutine, lets OTHERS run (not blocking)")
+    print("  3. asyncio.gather() = run multiple coroutines concurrently")
+    print("  4. asyncio.create_task() = start a coroutine in the background")
+    print("  5. return_exceptions=True = don't crash if one task fails")
+    print("  6. 'async for' + 'async generators' = streaming pattern (Month 2)")
+    print("  7. aiohttp = async HTTP client (use instead of requests)")
+ 
+ 
+if __name__ == "__main__":
+    asyncio.run(main())
