@@ -236,4 +236,215 @@ def list_books(
 
     results = list(books_db.values())
 
+    if genre:
+        results = [b for b in results if b["genre"].lower() == genre.lower()]
     
+    if min_rating is not None:
+        results = [b for b in results if b["rating"] >= min_rating]
+    
+    results = results[:limit]
+    
+    return {"count": len(results), "books": results}
+
+
+@app.get("/books/{book_id}", response_model=BookResponse)
+def get_book(
+    book_id: int = Path(
+        ...,
+        ge=1,                       # Book IDs start at 1
+        description="The ID of the book to retrieve",
+    ),
+):
+    """
+    Get a single book by ID.
+    
+    Path() is like Query() but for path parameters.
+    ge=1 means "must be >= 1", so /books/0 or /books/-1 → 422 error.
+    """
+    if book_id not in books_db:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Book with id {book_id} not found.",
+        )
+    return books_db[book_id]
+ 
+ 
+@app.post("/books", response_model=BookResponse, status_code=201)
+def create_book(book: BookCreate):
+    """
+    Create a new book.
+    
+    status_code=201: The proper code for "resource created."
+    
+    WHAT HAPPENS AUTOMATICALLY:
+    1. Client sends JSON → FastAPI parses it
+    2. Pydantic validates ALL fields:
+       - title must be 1-200 chars
+       - year must be 1000-2026
+       - rating must be 0.0-5.0
+    3. If validation fails → 422 response with DETAILED errors
+    4. If valid → your code runs
+    5. Response is validated against BookResponse model
+    
+    Try sending bad data in /docs and watch the error messages!
+    """
+    global next_id
+    
+    now = _now()
+    new_book = {
+        "id": next_id,
+        **book.model_dump(),
+        "created_at": now,
+        "updated_at": now,
+    }
+    books_db[next_id] = new_book
+    next_id += 1
+    
+    return new_book
+ 
+ 
+@app.patch("/books/{book_id}", response_model=BookResponse)
+def update_book(book_id: int, updates: BookUpdate):
+    """
+    Partially update a book.
+    
+    PATCH vs PUT:
+    - PUT = "Replace the ENTIRE resource" (send ALL fields)
+    - PATCH = "Update ONLY the fields I'm sending" (partial)
+    
+    Example: PATCH /books/1 with {"rating": 5.0}
+    → Only changes the rating, everything else stays the same
+    
+    The magic: model_dump(exclude_unset=True)
+    - This only returns fields the client ACTUALLY sent
+    - If they sent {"rating": 5.0}, we get {"rating": 5.0}
+    - NOT {"title": None, "author": None, "rating": 5.0, ...}
+    
+    WHY THIS MATTERS FOR AI:
+    When building an LLM chat API, you'll PATCH conversation settings:
+    PATCH /conversations/123 body: {"temperature": 0.7}
+    Same pattern!
+    """
+    if book_id not in books_db:
+        raise HTTPException(status_code=404, detail=f"Book {book_id} not found.")
+    
+    # exclude_unset=True → only get fields the client actually sent
+    update_data = updates.model_dump(exclude_unset=True)
+    
+    if not update_data:
+        raise HTTPException(
+            status_code=400, 
+            detail="No fields provided to update.",
+        )
+    
+    # Apply updates to existing book
+    book = books_db[book_id]
+    for key, value in update_data.items():
+        book[key] = value
+    book["updated_at"] = _now()
+    
+    return book
+ 
+ 
+@app.delete("/books/{book_id}")
+def delete_book(book_id: int):
+    """Delete a book. Returns the deleted book for confirmation."""
+    if book_id not in books_db:
+        raise HTTPException(status_code=404, detail=f"Book {book_id} not found.")
+    
+    deleted = books_db.pop(book_id)
+    return {"message": f"Deleted '{deleted['title']}'", "deleted_book": deleted}
+ 
+ 
+# =============================================================================
+# BONUS: Stats endpoint (preview of Day 10's aggregation)
+# =============================================================================
+ 
+@app.get("/books/stats/")
+def book_stats():
+    """
+    Get statistics about all books.
+    Trailing slash to avoid conflict with /books/{book_id}.
+    """
+    if not books_db:
+        return {"count": 0, "avg_rating": 0, "genres": {}}
+    
+    all_books = list(books_db.values())
+    ratings = [b["rating"] for b in all_books]
+    
+    # Count books per genre
+    genre_counts: dict[str, int] = {}
+    for book in all_books:
+        genre = book["genre"]
+        genre_counts[genre] = genre_counts.get(genre, 0) + 1
+    
+    return {
+        "count": len(all_books),
+        "avg_rating": round(sum(ratings) / len(ratings), 2),
+        "rating_range": {"min": min(ratings), "max": max(ratings)},
+        "genres": genre_counts,
+    }
+ 
+ 
+# =============================================================================
+# INTERVIEW PREP
+# =============================================================================
+"""
+Q1: How does FastAPI validate request data automatically?
+A1: FastAPI uses Pydantic models to validate request bodies. When a request 
+    comes in, FastAPI:
+    1. Parses the JSON body
+    2. Creates a Pydantic model instance (this triggers validation)
+    3. If validation fails, returns 422 with detailed error messages
+    4. If valid, passes the model to your function
+    
+    For query/path params, FastAPI uses Python type hints + Query()/Path() 
+    validators to do the same thing.
+ 
+Q2: What is the difference between 200, 201, 400, 404, and 422?
+A2: 
+    200 OK = Success, here's your data (default for GET/PATCH/PUT)
+    201 Created = Success, new resource created (for POST)
+    400 Bad Request = Your request is malformed or invalid
+    404 Not Found = The resource you asked for doesn't exist
+    422 Unprocessable Entity = Data format is correct but values are invalid
+    
+    422 is FastAPI's default for validation errors. Example: 
+    You sent {"year": 9999} — it's valid JSON, valid int, but fails our 
+    le=2026 constraint.
+ 
+Q3: How would you version your API?
+A3: Common approaches:
+    - URL versioning: /api/v1/books, /api/v2/books (most common, easiest)
+    - Header versioning: Accept: application/vnd.myapi.v2+json
+    - Query param: /books?version=2
+    
+    In FastAPI, URL versioning with APIRouter:
+    
+    from fastapi import APIRouter
+    v1 = APIRouter(prefix="/api/v1")
+    v2 = APIRouter(prefix="/api/v2")
+    
+    @v1.get("/books") 
+    def list_books_v1(): ...
+    
+    @v2.get("/books")  
+    def list_books_v2(): ...   # New response format
+    
+    app.include_router(v1)
+    app.include_router(v2)
+ 
+HOW TO TEST:
+    uvicorn day9_validation:app --reload
+    
+    Test validation by sending BAD data in /docs:
+    1. POST /books with {"title": "", ...}     → 422 (title too short)
+    2. POST /books with {"year": 9999, ...}    → 422 (year > 2026)
+    3. POST /books with {"rating": 6.0, ...}   → 422 (rating > 5.0)
+    4. PATCH /books/1 with {}                   → 400 (no fields to update)
+    5. GET /books/0                             → 422 (id must be >= 1)
+    6. GET /books/999                           → 404 (book doesn't exist)
+ 
+GIT COMMIT: Day 9: validated book API with Pydantic models + proper status codes
+"""
+ 
