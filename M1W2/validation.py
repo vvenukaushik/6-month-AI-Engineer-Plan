@@ -540,3 +540,29 @@ import random
 #     print(elapsed)
 
 # asyncio.run(main())
+
+
+# CHALLENGE 3 First One Wins
+
+async def server(name):
+    delay = random.uniform(1,5)
+    print(f"  {name}: processing... (will take {delay:.1f}s)")
+    await asyncio.sleep(delay)
+    return f"{name} responded!"
+
+
+async def main():
+
+    task1 = asyncio.create_task(server("Server A"))
+    task2 = asyncio.create_task(server("Server B"))
+    task3 = asyncio.create_task(server("Server C"))
+
+
+    done, pending = await asyncio.wait([task1, task2, task3], return_when=asyncio.FIRST_COMPLETED)
+
+    for task in pending:
+        task.cancel()
+    
+    print(done.pop().result())
+
+asyncio.run(main())
