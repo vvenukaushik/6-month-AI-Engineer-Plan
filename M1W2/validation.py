@@ -544,25 +544,49 @@ import random
 
 # CHALLENGE 3 First One Wins
 
-async def server(name):
-    delay = random.uniform(1,5)
-    print(f"  {name}: processing... (will take {delay:.1f}s)")
-    await asyncio.sleep(delay)
-    return f"{name} responded!"
+# async def server(name):
+#     delay = random.uniform(1,5)
+#     print(f"  {name}: processing... (will take {delay:.1f}s)")
+#     await asyncio.sleep(delay)
+#     return f"{name} responded!"
 
+
+# async def main():
+
+#     task1 = asyncio.create_task(server("Server A"))
+#     task2 = asyncio.create_task(server("Server B"))
+#     task3 = asyncio.create_task(server("Server C"))
+
+
+#     done, pending = await asyncio.wait([task1, task2, task3], return_when=asyncio.FIRST_COMPLETED)
+
+#     for task in pending:
+#         task.cancel()
+    
+#     print(done.pop().result())
+
+# asyncio.run(main())
+
+
+# CHALLENGE $ - Creating semaphore lock - runn 3 concurrently
+
+sem = asyncio.Semaphore(3)
+async def download(url, sem):
+    async with sem:
+        print(f"Download started!!{url}")
+        await asyncio.sleep(random.uniform(1,5))
+        print(f"Download Completed! {url}")
+        pass
 
 async def main():
+    urls = [f"https://example.com/file_{i}" for i in range(1, 11)]
 
-    task1 = asyncio.create_task(server("Server A"))
-    task2 = asyncio.create_task(server("Server B"))
-    task3 = asyncio.create_task(server("Server C"))
+    print(f"📥 Downloading {len(urls)} files (max 3 at a time)\n")
 
+    tasks = [download(url, sem) for url in urls]
 
-    done, pending = await asyncio.wait([task1, task2, task3], return_when=asyncio.FIRST_COMPLETED)
+    await asyncio.gather(*tasks)
 
-    for task in pending:
-        task.cancel()
-    
-    print(done.pop().result())
 
 asyncio.run(main())
+
