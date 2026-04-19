@@ -7,8 +7,8 @@ from config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from app.database import get_db
-from app.models import User
+from database import get_db
+from models import User
 
 # Hasing password, creating token
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

@@ -37,4 +37,4 @@ class NoteResponse(BaseModel):
 
 class NoteListResponse(BaseModel):
     count: int
-    notes: list[NoteListResponse]
+    notes: list[NoteResponse]
