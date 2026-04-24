@@ -145,17 +145,17 @@ print(df)
 
 # Multiple conditions — use & (AND) and | (OR)
 # IMPORTANT: each condition MUST be in parentheses!
-print("\n--- Sci-Fi movies rated 8.7+ ---")
+# print("\n--- Sci-Fi movies rated 8.7+ ---")
 
-mask1 = (df["genre"] == "Sci-Fi") & (df["rating"] >= 8.8)
-scifi_rated = df[mask1]
+# mask1 = (df["genre"] == "Sci-Fi") & (df["rating"] >= 8.8)
+# scifi_rated = df[mask1]
 
-print(scifi_rated[["title", "genre", "rating"]])
+# print(scifi_rated[["title", "genre", "rating"]])
 
 
-print("\n--- Movies that are either Sci-Fi OR rated 9.0+ ---")
-either = df[(df["genre"] == "Sci-Fi") | (df["rating"] >= 9.0)]
-print(either[["title", "genre", "rating"]])
+# print("\n--- Movies that are either Sci-Fi OR rated 9.0+ ---")
+# either = df[(df["genre"] == "Sci-Fi") | (df["rating"] >= 9.0)]
+# print(either[["title", "genre", "rating"]])
 # In SQL: WHERE genre = 'Sci-Fi' OR rating >= 9.0
 
 # .isin() — check if value is in a list (like SQL's IN clause)
