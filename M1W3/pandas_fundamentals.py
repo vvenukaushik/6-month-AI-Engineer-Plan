@@ -139,9 +139,9 @@ print(df)
 # # Shorthand — do it in one line (this is how you'll usually write it):
 # print("\n--- Movies rated 8.8 or higher ---")
 
-# print(df[df["rating"] >= 8.8])
-# high_rated = df[df["rating"] >= 8.8]
-# print(high_rated[["title", "rating"]])
+print(df[df["rating"] >= 8.8])
+high_rated = df[df["rating"] >= 8.8]
+print(high_rated[["title", "rating"]])
 
 # Multiple conditions — use & (AND) and | (OR)
 # IMPORTANT: each condition MUST be in parentheses!
