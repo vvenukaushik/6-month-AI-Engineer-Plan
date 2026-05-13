@@ -27,6 +27,7 @@ async def getModels(model_name: ModelName):
     if model_name.value == ModelName.lenet.value:
         return {"model_name": model_name, "message": "LeCNN all the images"}
     return {"model_name": model_name, "message": "Have some residuals"}
+    
 
 
 # Query Params
